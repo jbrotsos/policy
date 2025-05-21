@@ -1,6 +1,7 @@
 import axios from 'axios';
+import { Policy, CreatePolicyData, PolicyFilters } from '../types/policy';
 
-const API_BASE_URL = `${process.env.REACT_APP_API_URL}/api/v1`;
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000';
 
 // Create axios instance with default config
 const api = axios.create({
@@ -46,64 +47,32 @@ api.interceptors.response.use(
   }
 );
 
-export interface Policy {
-  id: number;
-  name: string;
-  description: string;
-  category: 'CSPM' | 'Posture' | 'Gating' | 'Drift' | 'Settings' | 'DevOps' | 'FIM' | 'Anti-malware';
-  type: 'Default' | 'Built-in' | 'Custom';
-  priority: number;
-  status: boolean;
-  created_at: string;
-  updated_at: string;
-}
+export const usePolicyService = () => {
+  const getPolicies = async (filters?: PolicyFilters): Promise<Policy[]> => {
+    const response = await axios.get<Policy[]>(`${API_BASE_URL}/api/policies`, { params: filters });
+    return response.data;
+  };
 
-export interface CreatePolicyData {
-  name: string;
-  description: string;
-  category: 'CSPM' | 'Posture' | 'Gating' | 'Drift' | 'Settings' | 'DevOps' | 'FIM' | 'Anti-malware';
-  type: 'Default' | 'Built-in' | 'Custom';
-  priority?: number;
-  status: boolean;
-}
+  const createPolicy = async (data: CreatePolicyData): Promise<Policy> => {
+    const response = await axios.post<Policy>(`${API_BASE_URL}/api/policies`, data);
+    return response.data;
+  };
 
-const policyService = {
-  async getPolicies(): Promise<Policy[]> {
-    const { data } = await api.get<Policy[]>('/policies');
-    return data;
-  },
+  const updatePolicy = async (id: number, data: Partial<Policy>): Promise<Policy> => {
+    const response = await axios.put<Policy>(`${API_BASE_URL}/api/policies/${id}`, data);
+    return response.data;
+  };
 
-  async createPolicy(data: CreatePolicyData): Promise<Policy> {
-    try {
-      console.log('Creating policy with data:', JSON.stringify(data, null, 2));
-      const { data: responseData } = await api.post<Policy>('/policies', data);
-      console.log('Policy created successfully:', responseData);
-      return responseData;
-    } catch (error: any) {
-      console.error('Error in createPolicy:', {
-        message: error.message,
-        response: error.response?.data,
-        status: error.response?.status,
-        requestData: data,
-        fullError: error
-      });
-      throw error;
-    }
-  },
+  const deletePolicy = async (id: number): Promise<void> => {
+    await axios.delete(`${API_BASE_URL}/api/policies/${id}`);
+  };
 
-  async updatePolicy(id: number, data: Partial<CreatePolicyData>): Promise<Policy> {
-    const { data: responseData } = await api.put<Policy>(`/policies/${id}`, data);
-    return responseData;
-  },
-
-  async deletePolicy(id: number): Promise<void> {
-    await api.delete(`/policies/${id}`);
-  },
-
-  async togglePolicyStatus(id: number, status: boolean): Promise<Policy> {
-    const { data } = await api.patch<Policy>(`/policies/${id}/status`, { status });
-    return data;
-  },
+  return {
+    getPolicies,
+    createPolicy,
+    updatePolicy,
+    deletePolicy,
+  };
 };
 
-export default policyService; 
+export default usePolicyService; 

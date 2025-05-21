@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, ChangeEvent } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -21,7 +21,7 @@ import {
   FormControlLabel,
   Radio,
   RadioGroup,
-  FormLabel,
+  FormLabel as MuiFormLabel,
   Switch,
   List,
   ListItem,
@@ -29,15 +29,20 @@ import {
   ListItemSecondaryAction,
   IconButton,
 } from '@mui/material';
-import { CreatePolicyData } from '../services/policyService';
+import { CreatePolicyData, Rule, PolicyCategory, PolicyType, PolicyPriority } from '../types/policy';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import CreateRuleWizard from './CreateRuleWizard';
+
+interface ExtendedPolicyData extends CreatePolicyData {
+  type: PolicyType;
+}
 
 interface CreatePolicyWizardProps {
   open: boolean;
   onClose: () => void;
   onSubmit: (data: CreatePolicyData) => Promise<void>;
+  selectedCategory: PolicyCategory;
 }
 
 const steps = ['General details and scope', 'Rules', 'Review'];
@@ -76,27 +81,17 @@ const actions = [
   'Notify',
 ];
 
-interface ExtendedPolicyData extends CreatePolicyData {
-  // No additional fields needed anymore
-}
-
-interface Rule {
-  id: number;
-  name: string;
-  description: string;
-  type: string;
-}
-
 const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
   open,
   onClose,
   onSubmit,
-}) => {
-  const [activeStep, setActiveStep] = useState(0);
+  selectedCategory,
+}: CreatePolicyWizardProps) => {
+  const [activeStep, setActiveStep] = useState<number>(0);
   const [formData, setFormData] = useState<ExtendedPolicyData>({
     name: '',
     description: '',
-    category: 'CSPM',
+    category: selectedCategory,
     type: 'Default',
     priority: 0,
     status: true,
@@ -105,8 +100,15 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
   const [rules, setRules] = useState<Rule[]>([]);
   const [isRuleWizardOpen, setIsRuleWizardOpen] = useState(false);
 
+  useEffect(() => {
+    setFormData((prev: ExtendedPolicyData) => ({
+      ...prev,
+      category: selectedCategory,
+    }));
+  }, [selectedCategory]);
+
   const handleNext = () => {
-    setActiveStep((prevStep) => prevStep + 1);
+    setActiveStep((prevStep: number) => prevStep + 1);
   };
 
   const handleBack = () => {
@@ -114,32 +116,32 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
   };
 
   const handleTextFieldChange = (field: keyof ExtendedPolicyData) => (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: ChangeEvent<HTMLInputElement>
   ) => {
-    setFormData((prev) => ({
+    setFormData((prev: ExtendedPolicyData) => ({
       ...prev,
       [field]: event.target.value,
     }));
   };
 
   const handleSelectChange = (field: keyof ExtendedPolicyData) => (
-    event: SelectChangeEvent
+    event: SelectChangeEvent<string>
   ) => {
-    setFormData((prev) => ({
+    setFormData((prev: ExtendedPolicyData) => ({
       ...prev,
       [field]: event.target.value,
     }));
   };
 
-  const handleRadioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
+  const handleRadioChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev: ExtendedPolicyData) => ({
       ...prev,
-      type: event.target.value as 'Default' | 'Built-in' | 'Custom',
+      type: event.target.value as PolicyType,
     }));
   };
 
-  const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({
+  const handleSwitchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setFormData((prev: ExtendedPolicyData) => ({
       ...prev,
       status: event.target.checked,
     }));
@@ -187,7 +189,7 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
               General Details
             </Typography>
             <Typography variant="body2" color="text.secondary" paragraph>
-              Configure the basic settings for your policy.
+              Configure the basic settings for your {selectedCategory} policy.
             </Typography>
             
             <TextField
@@ -197,7 +199,7 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
               onChange={handleTextFieldChange('name')}
               margin="normal"
               required
-              placeholder="Enter a descriptive name for your policy"
+              placeholder={`Enter a descriptive name for your ${selectedCategory} policy`}
             />
             
             <TextField
@@ -209,7 +211,7 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
               multiline
               rows={4}
               required
-              placeholder="Describe the purpose and scope of this policy"
+              placeholder={`Describe the purpose and scope of this ${selectedCategory} policy`}
             />
 
             <FormControl fullWidth margin="normal" required>
@@ -218,20 +220,14 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
                 value={formData.category}
                 onChange={handleSelectChange('category')}
                 label="Category"
+                disabled
               >
-                <MenuItem value="CSPM">CSPM</MenuItem>
-                <MenuItem value="Posture">Posture</MenuItem>
-                <MenuItem value="Gating">Gating</MenuItem>
-                <MenuItem value="Drift">Drift</MenuItem>
-                <MenuItem value="Settings">Settings</MenuItem>
-                <MenuItem value="DevOps">DevOps</MenuItem>
-                <MenuItem value="FIM">FIM</MenuItem>
-                <MenuItem value="Anti-malware">Anti-malware</MenuItem>
+                <MenuItem value={selectedCategory}>{selectedCategory}</MenuItem>
               </Select>
             </FormControl>
 
-            <FormControl component="fieldset" margin="normal" required>
-              <FormLabel component="legend">Type</FormLabel>
+            <FormControl component="fieldset" margin="normal">
+              <MuiFormLabel component="legend">Type</MuiFormLabel>
               <RadioGroup
                 value={formData.type}
                 onChange={handleRadioChange}
@@ -275,7 +271,7 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
             </FormControl>
 
             <FormControl component="fieldset" margin="normal">
-              <FormLabel component="legend">Status</FormLabel>
+              <MuiFormLabel component="legend">Status</MuiFormLabel>
               <FormControlLabel
                 control={
                   <Switch
@@ -430,7 +426,7 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
       >
         <DialogTitle>
           <Typography variant="h5" component="div">
-            Create New Policy
+            Create New {selectedCategory} Policy
           </Typography>
         </DialogTitle>
         <DialogContent sx={{ p: 0 }}>
@@ -498,6 +494,7 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
         open={isRuleWizardOpen}
         onClose={() => setIsRuleWizardOpen(false)}
         onSave={handleRuleSave}
+        policyCategory={selectedCategory}
       />
     </>
   );

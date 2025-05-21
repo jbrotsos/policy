@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, ChangeEvent } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -32,41 +32,13 @@ import {
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
+import { Rule, PolicyCategory } from '../types/policy';
 
 interface CreateRuleWizardProps {
   open: boolean;
   onClose: () => void;
-  onSave: (rule: Rule) => void;
-}
-
-interface Rule {
-  id: number;
-  name: string;
-  description: string;
-  template: string;
-  category: string;
-  type: string;
-  priority: string;
-  status: boolean;
-  scope: string;
-  triggers: Trigger[];
-  action: Action;
-}
-
-interface Trigger {
-  id: number;
-  queryType: 'AND' | 'OR';
-  codeResult: string;
-  condition: 'equals' | 'not equals';
-  value: string;
-}
-
-interface Action {
-  type: 'recommendation' | 'alert' | 'block' | 'run' | 'ignore';
-  name: string;
-  description: string;
-  riskLevel: 'Critical' | 'High' | 'Medium' | 'Low';
-  remediationSteps: string;
+  onSave: (rule: Omit<Rule, 'id' | 'policy_id' | 'created_at' | 'updated_at'>) => void;
+  policyCategory: PolicyCategory;
 }
 
 const ruleSteps = ['General Details', 'Trigger', 'Actions', 'Trigger Results'];
@@ -123,26 +95,13 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
   open,
   onClose,
   onSave,
-}) => {
+  policyCategory,
+}: CreateRuleWizardProps) => {
   const [activeStep, setActiveStep] = useState(0);
-  const [rule, setRule] = useState<Rule>({
-    id: Date.now(),
+  const [ruleData, setRuleData] = useState<Omit<Rule, 'id' | 'policy_id' | 'created_at' | 'updated_at'>>({
     name: '',
     description: '',
-    template: '',
-    category: '',
-    type: 'Default',
-    priority: '',
-    status: true,
-    scope: '',
-    triggers: [],
-    action: {
-      type: 'recommendation',
-      name: '',
-      description: '',
-      riskLevel: 'Medium',
-      remediationSteps: '',
-    },
+    type: '',
   });
 
   const handleNext = () => {
@@ -153,111 +112,31 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
     setActiveStep((prevStep) => prevStep - 1);
   };
 
-  const handleTextFieldChange = (field: string) => (
-    event: React.ChangeEvent<HTMLInputElement>
+  const handleTextFieldChange = (field: keyof typeof ruleData) => (
+    event: ChangeEvent<HTMLInputElement>
   ) => {
-    console.log('TextField change:', { field, value: event.target.value });
-    if (field.startsWith('action.')) {
-      const actionField = field.split('.')[1];
-      console.log('Updating action field:', actionField);
-      setRule((prev) => ({
-        ...prev,
-        action: {
-          ...prev.action,
-          [actionField]: event.target.value,
-        },
-      }));
-    } else {
-      console.log('Updating rule field:', field);
-      setRule((prev) => ({
-        ...prev,
-        [field]: event.target.value,
-      }));
-    }
+    setRuleData((prev) => ({
+      ...prev,
+      [field]: event.target.value,
+    }));
   };
 
-  const handleSelectChange = (field: string) => (
-    event: SelectChangeEvent
-  ) => {
-    if (field.startsWith('action.')) {
-      const actionField = field.split('.')[1];
-      setRule((prev) => ({
-        ...prev,
-        action: {
-          ...prev.action,
-          [actionField]: event.target.value,
-        },
-      }));
-    } else {
-      setRule((prev) => ({
-        ...prev,
-        [field]: event.target.value,
-      }));
-    }
-  };
-
-  const handleRadioChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRule((prev) => ({
+  const handleSelectChange = (event: SelectChangeEvent<string>) => {
+    setRuleData((prev) => ({
       ...prev,
       type: event.target.value,
     }));
   };
 
-  const handleActionTypeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRule((prev) => ({
+  const handleSwitchChange = (event: ChangeEvent<HTMLInputElement>) => {
+    setRuleData((prev) => ({
       ...prev,
-      action: {
-        ...prev.action,
-        type: event.target.value as Action['type'],
-      },
+      type: event.target.checked ? 'Allow' : 'Deny',
     }));
   };
 
-  const handleSwitchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setRule((prev) => ({
-      ...prev,
-      status: event.target.checked,
-    }));
-  };
-
-  const handleAddTrigger = () => {
-    setRule((prev) => ({
-      ...prev,
-      triggers: [
-        ...prev.triggers,
-        {
-          id: Date.now(),
-          queryType: 'AND',
-          codeResult: 'Vulnerability',
-          condition: 'equals',
-          value: 'Critical',
-        },
-      ],
-    }));
-  };
-
-  const handleDeleteTrigger = (triggerId: number) => {
-    setRule((prev) => ({
-      ...prev,
-      triggers: prev.triggers.filter((t) => t.id !== triggerId),
-    }));
-  };
-
-  const handleTriggerChange = (
-    triggerId: number,
-    field: keyof Trigger,
-    value: string
-  ) => {
-    setRule((prev) => ({
-      ...prev,
-      triggers: prev.triggers.map((t) =>
-        t.id === triggerId ? { ...t, [field]: value } : t
-      ),
-    }));
-  };
-
-  const handleSave = () => {
-    onSave(rule);
+  const handleSubmit = () => {
+    onSave(ruleData);
     onClose();
   };
 
@@ -276,8 +155,8 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
             <FormControl fullWidth margin="normal" disabled>
               <InputLabel>Rule Template</InputLabel>
               <Select
-                value={rule.template}
-                onChange={handleSelectChange('template')}
+                value={ruleData.type}
+                onChange={handleSelectChange}
                 label="Rule Template"
               >
                 {ruleTemplates.map((template) => (
@@ -291,60 +170,30 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
             <TextField
               fullWidth
               label="Name"
-              value={rule.name}
-              onFocus={(e) => console.log('Name field focused')}
-              onBlur={(e) => console.log('Name field blurred')}
-              onKeyDown={(e) => console.log('Name field keydown:', e.key)}
-              onKeyPress={(e) => console.log('Name field keypress:', e.key)}
-              onChange={(e) => {
-                console.log('Name field raw change event:', e);
-                const value = e.target.value;
-                console.log('Attempting to set name to:', value);
-                setRule(prev => {
-                  console.log('Previous rule state:', prev);
-                  const newState = { ...prev, name: value };
-                  console.log('New rule state:', newState);
-                  return newState;
-                });
-              }}
+              value={ruleData.name}
+              onChange={handleTextFieldChange('name')}
               margin="normal"
               required
               placeholder="Enter a descriptive name for your rule"
-              autoComplete="off"
             />
 
             <TextField
               fullWidth
               label="Description"
-              value={rule.description}
-              onFocus={(e) => console.log('Description field focused')}
-              onBlur={(e) => console.log('Description field blurred')}
-              onKeyDown={(e) => console.log('Description field keydown:', e.key)}
-              onKeyPress={(e) => console.log('Description field keypress:', e.key)}
-              onChange={(e) => {
-                console.log('Description field raw change event:', e);
-                const value = e.target.value;
-                console.log('Attempting to set description to:', value);
-                setRule(prev => {
-                  console.log('Previous rule state:', prev);
-                  const newState = { ...prev, description: value };
-                  console.log('New rule state:', newState);
-                  return newState;
-                });
-              }}
+              value={ruleData.description}
+              onChange={handleTextFieldChange('description')}
               margin="normal"
               multiline
               rows={4}
               required
-              placeholder="Describe the purpose of this rule"
-              autoComplete="off"
+              placeholder="Describe the purpose and scope of this rule"
             />
 
             <FormControl fullWidth margin="normal" disabled>
               <InputLabel>Category</InputLabel>
               <Select
-                value={rule.category}
-                onChange={handleSelectChange('category')}
+                value={ruleData.type}
+                onChange={handleSelectChange}
                 label="Category"
               >
                 {categories.map((category) => (
@@ -358,8 +207,8 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
             <FormControl component="fieldset" margin="normal" required>
               <FormLabel component="legend">Type</FormLabel>
               <RadioGroup
-                value={rule.type}
-                onChange={handleRadioChange}
+                value={ruleData.type}
+                onChange={handleSelectChange}
                 row
               >
                 {ruleTypes.map((type) => (
@@ -376,8 +225,8 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
             <FormControl fullWidth margin="normal" disabled>
               <InputLabel>Priority</InputLabel>
               <Select
-                value={rule.priority}
-                onChange={handleSelectChange('priority')}
+                value={ruleData.type}
+                onChange={handleSelectChange}
                 label="Priority"
               >
                 {priorities.map((priority) => (
@@ -393,20 +242,20 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               <FormControlLabel
                 control={
                   <Switch
-                    checked={rule.status}
+                    checked={ruleData.type === 'Allow'}
                     onChange={handleSwitchChange}
                     color="primary"
                   />
                 }
-                label={rule.status ? 'On' : 'Off'}
+                label={ruleData.type === 'Allow' ? 'On' : 'Off'}
               />
             </FormControl>
 
             <FormControl fullWidth margin="normal" disabled>
               <InputLabel>Scope</InputLabel>
               <Select
-                value={rule.scope}
-                onChange={handleSelectChange('scope')}
+                value={ruleData.type}
+                onChange={handleSelectChange}
                 label="Scope"
               >
                 {scopes.map((scope) => (
@@ -434,7 +283,7 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={handleAddTrigger}
+                onClick={() => {}}
                 sx={{ 
                   textTransform: 'none',
                   px: 3,
@@ -444,7 +293,7 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               </Button>
             </Box>
 
-            {rule.triggers.length === 0 ? (
+            {ruleData.type === 'Allow' ? (
               <Paper 
                 variant="outlined" 
                 sx={{ 
@@ -462,70 +311,7 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               </Paper>
             ) : (
               <List>
-                {rule.triggers.map((trigger, index) => (
-                  <ListItem
-                    key={trigger.id}
-                    divider
-                    sx={{
-                      backgroundColor: 'background.paper',
-                      mb: 1,
-                      borderRadius: 1,
-                      flexDirection: 'column',
-                      alignItems: 'stretch',
-                    }}
-                  >
-                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-                      {index > 0 && (
-                        <FormControl sx={{ minWidth: 120, mr: 2 }}>
-                          <Select
-                            value={trigger.queryType}
-                            onChange={(e) => handleTriggerChange(trigger.id, 'queryType', e.target.value)}
-                            size="small"
-                          >
-                            <MenuItem value="AND">AND</MenuItem>
-                            <MenuItem value="OR">OR</MenuItem>
-                          </Select>
-                        </FormControl>
-                      )}
-                      <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-                        Code Result: {trigger.codeResult}
-                      </Typography>
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        onClick={() => handleDeleteTrigger(trigger.id)}
-                        size="small"
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </Box>
-                    <Box sx={{ display: 'flex', gap: 2 }}>
-                      <FormControl sx={{ minWidth: 120 }}>
-                        <Select
-                          value={trigger.condition}
-                          onChange={(e) => handleTriggerChange(trigger.id, 'condition', e.target.value)}
-                          size="small"
-                        >
-                          <MenuItem value="equals">equals</MenuItem>
-                          <MenuItem value="not equals">not equals</MenuItem>
-                        </Select>
-                      </FormControl>
-                      <FormControl sx={{ minWidth: 120 }}>
-                        <Select
-                          value={trigger.value}
-                          onChange={(e) => handleTriggerChange(trigger.id, 'value', e.target.value)}
-                          size="small"
-                        >
-                          {priorities.map((priority) => (
-                            <MenuItem key={priority} value={priority}>
-                              {priority}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    </Box>
-                  </ListItem>
-                ))}
+                {/* Trigger items would be rendered here */}
               </List>
             )}
           </Box>
@@ -544,8 +330,8 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
             <FormControl component="fieldset" margin="normal" required>
               <FormLabel component="legend">Action</FormLabel>
               <RadioGroup
-                value={rule.action.type}
-                onChange={handleActionTypeChange}
+                value={ruleData.type}
+                onChange={handleSelectChange}
               >
                 {actionTypes.map((action) => (
                   <FormControlLabel
@@ -561,8 +347,8 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
             <TextField
               fullWidth
               label="Action Name"
-              value={rule.action.name}
-              onChange={handleTextFieldChange('action.name')}
+              value={ruleData.name}
+              onChange={handleTextFieldChange('name')}
               margin="normal"
               required
               placeholder="Enter a name for this action"
@@ -571,8 +357,8 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
             <TextField
               fullWidth
               label="Description"
-              value={rule.action.description}
-              onChange={handleTextFieldChange('action.description')}
+              value={ruleData.description}
+              onChange={handleTextFieldChange('description')}
               margin="normal"
               multiline
               rows={4}
@@ -583,8 +369,8 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
             <FormControl fullWidth margin="normal" required>
               <InputLabel>Risk Level</InputLabel>
               <Select
-                value={rule.action.riskLevel}
-                onChange={handleSelectChange('action.riskLevel')}
+                value={ruleData.type}
+                onChange={handleSelectChange}
                 label="Risk Level"
               >
                 {riskLevels.map((level) => (
@@ -598,8 +384,8 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
             <TextField
               fullWidth
               label="Remediation Steps"
-              value={rule.action.remediationSteps}
-              onChange={handleTextFieldChange('action.remediationSteps')}
+              value={ruleData.description}
+              onChange={handleTextFieldChange('description')}
               margin="normal"
               multiline
               rows={4}
@@ -619,7 +405,7 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               Review the triggers that will activate this rule.
             </Typography>
 
-            {rule.triggers.length === 0 ? (
+            {ruleData.type === 'Allow' ? (
               <Paper 
                 variant="outlined" 
                 sx={{ 
@@ -634,25 +420,7 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               </Paper>
             ) : (
               <List>
-                {rule.triggers.map((trigger, index) => (
-                  <ListItem
-                    key={trigger.id}
-                    divider
-                    sx={{
-                      backgroundColor: 'background.paper',
-                      mb: 1,
-                      borderRadius: 1,
-                    }}
-                  >
-                    <ListItemText
-                      primary={
-                        <Typography variant="body1" component="div">
-                          {trigger.codeResult} {trigger.condition} {trigger.value}
-                        </Typography>
-                      }
-                    />
-                  </ListItem>
-                ))}
+                {/* Trigger items would be rendered here */}
               </List>
             )}
           </Box>
@@ -666,11 +434,11 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
   const isStepValid = (step: number): boolean => {
     switch (step) {
       case 0:
-        return !!rule.name;
+        return !!ruleData.name;
       case 1:
-        return rule.triggers.length > 0;
+        return ruleData.type !== '';
       case 2:
-        return !!rule.action.type && !!rule.action.name;
+        return !!ruleData.name && !!ruleData.description;
       case 3:
         return true;
       default:
@@ -693,7 +461,7 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
     >
       <DialogTitle>
         <Typography variant="h5" component="div">
-          Create Custom Rule
+          Create New Rule for {policyCategory} Policy
         </Typography>
       </DialogTitle>
       <DialogContent sx={{ p: 0 }}>
@@ -736,10 +504,12 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
         )}
         {activeStep === ruleSteps.length - 1 ? (
           <Button
-            onClick={handleSave}
+            onClick={handleSubmit}
             variant="contained"
+            color="primary"
+            disabled={!isStepValid(activeStep)}
           >
-            Save Rule
+            Create Rule
           </Button>
         ) : (
           <Button
