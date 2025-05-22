@@ -5,6 +5,7 @@ export interface CreatePolicyData {
   priority: number;
   status: boolean;
   type: PolicyType;
+  scope: string;
 }
 
 export interface Policy extends CreatePolicyData {
@@ -19,6 +20,7 @@ export interface Rule {
   name: string;
   description: string;
   type: string;
+  status: boolean;
   policy_id: number;
   created_at: string;
   updated_at: string;

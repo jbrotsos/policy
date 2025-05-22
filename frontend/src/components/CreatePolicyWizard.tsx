@@ -36,6 +36,7 @@ import CreateRuleWizard from './CreateRuleWizard';
 
 interface ExtendedPolicyData extends CreatePolicyData {
   type: PolicyType;
+  scope: string;
 }
 
 interface CreatePolicyWizardProps {
@@ -68,6 +69,7 @@ const priorities = [
 ];
 
 const scopes = [
+  'Default',
   'Global',
   'Environment',
   'Resource Group',
@@ -95,6 +97,7 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
     type: 'Default',
     priority: 0,
     status: true,
+    scope: 'Default',
   });
   const [loading, setLoading] = useState(false);
   const [rules, setRules] = useState<Rule[]>([]);
@@ -171,8 +174,16 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
     setIsRuleWizardOpen(true);
   };
 
-  const handleRuleSave = (rule: Rule) => {
-    setRules((prevRules) => [...prevRules, rule]);
+  const handleRuleSave = (ruleData: Omit<Rule, 'id' | 'policy_id' | 'created_at' | 'updated_at'>) => {
+    // Create a temporary rule object with the provided data
+    const newRule: Rule = {
+      ...ruleData,
+      id: Date.now(), // Temporary ID for frontend use
+      policy_id: 0, // This will be set by the backend
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    setRules((prevRules) => [...prevRules, newRule]);
     setIsRuleWizardOpen(false);
   };
 
@@ -251,23 +262,21 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
               </RadioGroup>
             </FormControl>
 
-            <FormControl fullWidth margin="normal">
+            <FormControl fullWidth margin="normal" disabled>
               <InputLabel>Priority</InputLabel>
               <Select
-                value={formData.priority?.toString() ?? ''}
-                onChange={(event) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    priority: Number(event.target.value),
-                  }));
-                }}
+                value={formData.priority?.toString() ?? '0'}
                 label="Priority"
+                disabled
               >
                 <MenuItem value="0">Low</MenuItem>
                 <MenuItem value="1">Medium</MenuItem>
                 <MenuItem value="2">High</MenuItem>
                 <MenuItem value="3">Critical</MenuItem>
               </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                Priority selection will be enabled in a future update
+              </Typography>
             </FormControl>
 
             <FormControl component="fieldset" margin="normal">
@@ -282,6 +291,24 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
                 }
                 label={formData.status ? 'On' : 'Off'}
               />
+            </FormControl>
+
+            <FormControl fullWidth margin="normal" disabled>
+              <InputLabel>Scope</InputLabel>
+              <Select
+                value={formData.scope || 'Default'}
+                label="Scope"
+                disabled
+              >
+                {scopes.map((scope) => (
+                  <MenuItem key={scope} value={scope}>
+                    {scope}
+                  </MenuItem>
+                ))}
+              </Select>
+              <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                Scope selection will be enabled in a future update
+              </Typography>
             </FormControl>
           </Box>
         );
@@ -387,6 +414,7 @@ const CreatePolicyWizard: React.FC<CreatePolicyWizardProps> = ({
               <Typography><strong>Name:</strong> {formData.name}</Typography>
               <Typography><strong>Description:</strong> {formData.description}</Typography>
               <Typography><strong>Type:</strong> {formData.type}</Typography>
+              <Typography><strong>Scope:</strong> {formData.scope || 'Default'}</Typography>
               <Typography><strong>Status:</strong> {formData.status ? 'On' : 'Off'}</Typography>
             </Paper>
             <Paper variant="outlined" sx={{ p: 2, mb: 2 }}>

@@ -3,8 +3,6 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@emotion/styled": "^11.14.0",
     "@mui/icons-material": "^5.17.1",
     "@mui/material": "^5.17.1",
     "@testing-library/jest-dom": "^5.17.0",
@@ -48,6 +46,9 @@
     ]
   },
   "devDependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.0",
+    "@mui/types": "^7.4.2",
     "@types/axios": "^0.9.36",
     "@types/react": "^19.1.5",
     "@types/react-dom": "^19.1.5",

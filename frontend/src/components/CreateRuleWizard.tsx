@@ -29,6 +29,7 @@ import {
   ListItemSecondaryAction,
   IconButton,
   Chip,
+  Dialog as MuiDialog,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -91,6 +92,13 @@ const riskLevels = [
   'Low',
 ];
 
+interface Trigger {
+  id: number;
+  query: string;
+  condition: 'equals' | 'not equals';
+  value: string;
+}
+
 const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
   open,
   onClose,
@@ -102,6 +110,14 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
     name: '',
     description: '',
     type: '',
+    status: true,
+  });
+  const [triggers, setTriggers] = useState<Trigger[]>([]);
+  const [isAddTriggerDialogOpen, setIsAddTriggerDialogOpen] = useState(false);
+  const [newTrigger, setNewTrigger] = useState<Omit<Trigger, 'id'>>({
+    query: 'Code Result: Vulnerability',
+    condition: 'equals',
+    value: 'Critical',
   });
 
   const handleNext = () => {
@@ -131,7 +147,34 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
   const handleSwitchChange = (event: ChangeEvent<HTMLInputElement>) => {
     setRuleData((prev) => ({
       ...prev,
-      type: event.target.checked ? 'Allow' : 'Deny',
+      status: event.target.checked,
+    }));
+  };
+
+  const handleAddTrigger = () => {
+    const trigger: Trigger = {
+      ...newTrigger,
+      id: Date.now(),
+    };
+    setTriggers((prev) => [...prev, trigger]);
+    setIsAddTriggerDialogOpen(false);
+    setNewTrigger({
+      query: 'Code Result: Vulnerability',
+      condition: 'equals',
+      value: 'Critical',
+    });
+  };
+
+  const handleDeleteTrigger = (triggerId: number) => {
+    setTriggers((prev) => prev.filter((trigger) => trigger.id !== triggerId));
+  };
+
+  const handleTriggerChange = (field: keyof Omit<Trigger, 'id'>) => (
+    event: SelectChangeEvent<string>
+  ) => {
+    setNewTrigger((prev) => ({
+      ...prev,
+      [field]: event.target.value,
     }));
   };
 
@@ -242,12 +285,12 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               <FormControlLabel
                 control={
                   <Switch
-                    checked={ruleData.type === 'Allow'}
+                    checked={ruleData.status}
                     onChange={handleSwitchChange}
                     color="primary"
                   />
                 }
-                label={ruleData.type === 'Allow' ? 'On' : 'Off'}
+                label={ruleData.status ? 'On' : 'Off'}
               />
             </FormControl>
 
@@ -283,7 +326,7 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               <Button
                 variant="contained"
                 startIcon={<AddIcon />}
-                onClick={() => {}}
+                onClick={() => setIsAddTriggerDialogOpen(true)}
                 sx={{ 
                   textTransform: 'none',
                   px: 3,
@@ -293,7 +336,7 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               </Button>
             </Box>
 
-            {ruleData.type === 'Allow' ? (
+            {triggers.length === 0 ? (
               <Paper 
                 variant="outlined" 
                 sx={{ 
@@ -311,9 +354,94 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               </Paper>
             ) : (
               <List>
-                {/* Trigger items would be rendered here */}
+                {triggers.map((trigger) => (
+                  <ListItem
+                    key={trigger.id}
+                    divider
+                    sx={{
+                      backgroundColor: 'background.paper',
+                      mb: 1,
+                      borderRadius: 1,
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Box component="span" sx={{ typography: 'body1' }}>
+                          {trigger.query} {trigger.condition} {trigger.value}
+                        </Box>
+                      }
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        onClick={() => handleDeleteTrigger(trigger.id)}
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
               </List>
             )}
+
+            <MuiDialog
+              open={isAddTriggerDialogOpen}
+              onClose={() => setIsAddTriggerDialogOpen(false)}
+              maxWidth="sm"
+              fullWidth
+            >
+              <DialogTitle>Add Trigger</DialogTitle>
+              <DialogContent>
+                <Box sx={{ mt: 2 }}>
+                  <FormControl fullWidth margin="normal">
+                    <InputLabel>Query</InputLabel>
+                    <Select
+                      value={newTrigger.query}
+                      onChange={handleTriggerChange('query')}
+                      label="Query"
+                    >
+                      <MenuItem value="Code Result: Vulnerability">
+                        Code Result: Vulnerability
+                      </MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth margin="normal">
+                    <InputLabel>Condition</InputLabel>
+                    <Select
+                      value={newTrigger.condition}
+                      onChange={handleTriggerChange('condition')}
+                      label="Condition"
+                    >
+                      <MenuItem value="equals">equals</MenuItem>
+                      <MenuItem value="not equals">not equals</MenuItem>
+                    </Select>
+                  </FormControl>
+
+                  <FormControl fullWidth margin="normal">
+                    <InputLabel>Value</InputLabel>
+                    <Select
+                      value={newTrigger.value}
+                      onChange={handleTriggerChange('value')}
+                      label="Value"
+                    >
+                      <MenuItem value="Critical">Critical</MenuItem>
+                      <MenuItem value="High">High</MenuItem>
+                      <MenuItem value="Medium">Medium</MenuItem>
+                      <MenuItem value="Low">Low</MenuItem>
+                    </Select>
+                  </FormControl>
+                </Box>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={() => setIsAddTriggerDialogOpen(false)}>Cancel</Button>
+                <Button onClick={handleAddTrigger} variant="contained">
+                  Add
+                </Button>
+              </DialogActions>
+            </MuiDialog>
           </Box>
         );
 
@@ -405,7 +533,7 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               Review the triggers that will activate this rule.
             </Typography>
 
-            {ruleData.type === 'Allow' ? (
+            {triggers.length === 0 ? (
               <Paper 
                 variant="outlined" 
                 sx={{ 
@@ -420,7 +548,35 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
               </Paper>
             ) : (
               <List>
-                {/* Trigger items would be rendered here */}
+                {triggers.map((trigger) => (
+                  <ListItem
+                    key={trigger.id}
+                    divider
+                    sx={{
+                      backgroundColor: 'background.paper',
+                      mb: 1,
+                      borderRadius: 1,
+                    }}
+                  >
+                    <ListItemText
+                      primary={
+                        <Box component="span" sx={{ typography: 'body1' }}>
+                          {trigger.query} {trigger.condition} {trigger.value}
+                        </Box>
+                      }
+                    />
+                    <ListItemSecondaryAction>
+                      <IconButton
+                        edge="end"
+                        aria-label="delete"
+                        onClick={() => handleDeleteTrigger(trigger.id)}
+                        size="small"
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </ListItemSecondaryAction>
+                  </ListItem>
+                ))}
               </List>
             )}
           </Box>
@@ -436,7 +592,7 @@ const CreateRuleWizard: React.FC<CreateRuleWizardProps> = ({
       case 0:
         return !!ruleData.name;
       case 1:
-        return ruleData.type !== '';
+        return triggers.length > 0;
       case 2:
         return !!ruleData.name && !!ruleData.description;
       case 3:

@@ -49,22 +49,22 @@ api.interceptors.response.use(
 
 export const usePolicyService = () => {
   const getPolicies = async (filters?: PolicyFilters): Promise<Policy[]> => {
-    const response = await axios.get<Policy[]>(`${API_BASE_URL}/api/policies`, { params: filters });
+    const response = await axios.get<Policy[]>(`${API_BASE_URL}/api/v1/policies`, { params: filters });
     return response.data;
   };
 
   const createPolicy = async (data: CreatePolicyData): Promise<Policy> => {
-    const response = await axios.post<Policy>(`${API_BASE_URL}/api/policies`, data);
+    const response = await axios.post<Policy>(`${API_BASE_URL}/api/v1/policies`, data);
     return response.data;
   };
 
   const updatePolicy = async (id: number, data: Partial<Policy>): Promise<Policy> => {
-    const response = await axios.put<Policy>(`${API_BASE_URL}/api/policies/${id}`, data);
+    const response = await axios.put<Policy>(`${API_BASE_URL}/api/v1/policies/${id}`, data);
     return response.data;
   };
 
   const deletePolicy = async (id: number): Promise<void> => {
-    await axios.delete(`${API_BASE_URL}/api/policies/${id}`);
+    await axios.delete(`${API_BASE_URL}/api/v1/policies/${id}`);
   };
 
   return {

@@ -145,6 +145,52 @@ The Defender Portal Policy Management System is designed to manage security and 
 
 ## Core Components
 
+### Policy Types
+The system supports six distinct policy types, each with its own management interface and specific requirements:
+
+1. Posture Policies
+   - Focus on security posture and compliance
+   - Category: "Posture"
+   - Used for compliance standards and security posture management
+   - Supports CSPM (Cloud Security Posture Management) rules
+
+2. Drift Detection Policies
+   - Monitor and detect configuration drift
+   - Category: "Drift"
+   - Used for tracking changes in system configurations
+   - Supports real-time drift monitoring
+
+3. Gated Deployment Policies
+   - Control deployment processes
+   - Category: "Gating"
+   - Used for deployment controls and validations
+   - Supports deployment gating rules
+
+4. DevOps Policies
+   - Manage DevOps practices and processes
+   - Category: "DevOps"
+   - Used for CI/CD and development workflow controls
+   - Supports development pipeline rules
+
+5. FIM (File Integrity Monitoring) Policies
+   - Monitor file system changes
+   - Category: "FIM"
+   - Used for file system security
+   - Supports file integrity rules
+
+6. Anti-malware Policies
+   - Manage malware protection
+   - Category: "Anti-malware"
+   - Used for malware detection and prevention
+   - Supports anti-malware rules
+
+Each policy type:
+- Has its own dedicated tab in the main interface
+- Maintains a separate table of policies
+- Supports type-specific rules and configurations
+- Has its own policy creation wizard
+- Can be managed independently of other policy types
+
 ### Policy
 A policy represents a security or compliance rule set with the following attributes:
 - Name: Unique identifier for the policy
@@ -175,28 +221,52 @@ Rules are components of a policy that define specific conditions. They can be ex
 ## Frontend Requirements
 
 ### Policy Management View
-- This is the main page
-- It should have the exact same look and feel like the figma file `/assets/design/mockups/create-a-new-policy.png`
-- 5 Different types of policies: Posture, Drift Detection, Gated Deployment, DevOps, FIM, Anti-malware.
-- The five different types of polices are tabs - when you click on the tab, you see all the policies of that type.
-- The table will list all policies with the type, scope and action
-- Each Policy can have multiple rules. Each rule should be shown in the table under the policy that it is associated with
-- Must be able to edit, delete and enable/disable each existing policies and their rules
-- Must be able to create a new policy.
-- Each Button to Create New Policy and open the Create Policy Wizard - specific for that type of policy
+- This is the main page of the application
+- The page should have tabs at the top for each policy type:
+  1. Posture
+  2. Drift Detection
+  3. Gated Deployment
+  4. DevOps
+  5. FIM (File Integrity Monitoring)
+  6. Anti-malware
+- Each tab represents a different policy type and maintains its own table of policies
+- When a user clicks on a tab, they see all policies of that specific type
+- The table for each policy type will list all policies with the following columns:
+  - Policy Name
+  - Type
+  - Scope
+  - Action
+  - Status
+  - Associated Rules
+- Each policy can have multiple rules, which should be shown in the table under the policy they are associated with
+- Users must be able to:
+  - Edit existing policies and their rules
+  - Delete policies
+  - Enable/disable policies
+  - Create new policies specific to the selected policy type
+- Each policy type tab should have a "Create New Policy" button that opens the Create Policy Wizard specific to that policy type
+- The interface should match the design mockups in `/assets/design/mockups/create-a-new-policy.png`
 
 ### Creating a new policy wizard
-- It should have the exact same look and feel as the figma file `/assets/design/mockups/create-a-new-policy-new-rule-general-details.png`
-- Should have three different stages: "General details & scope", "Rules", and "Review and Finish"
+- The wizard should be specific to the policy type selected (Posture, Drift Detection, Gated Deployment, DevOps, FIM, or Anti-malware)
+- The wizard should have three stages: "General details & scope", "Rules", and "Review and Finish"
 - First Step of Policy Wizard: "General details and scope"
-  - It should have the exact same look and feel as the figma file `/assets/design/mockups/create-a-new-policy-new-rule-general-details.png`
-  - User should input Name. This is a text box.
-  - User should input Description. This is a text box. 
-  - User should select a Category. This is a drop down menu. This should be greyed outfor now.
-  - User should select a Type. This is a radio button with the selection of "Default", "Built-in", or "Custom".
-  - User should select a Priority. This is a drop down menu. This should be greyed out for now.
-  - User should select a Status. Either on or off. The default should be on.
-  - User should select the Scope. This is a drop down menu. This should be greyed out for now.
+  - It should match the design in `/assets/design/mockups/create-a-new-policy-new-rule-general-details.png`
+  - User should input:
+    - Name (text box)
+    - Description (text box)
+    - Category (dropdown menu, pre-selected based on policy type tab)
+    - Type (radio buttons: "Default", "Built-in", or "Custom")
+    - Priority (dropdown menu, currently disabled)
+    - Status (toggle switch, default: on)
+    - Scope (dropdown menu, currently disabled)
+  - The Category field should be pre-populated based on the policy type tab selected:
+    - Posture tab → Category: "Posture"
+    - Drift Detection tab → Category: "Drift"
+    - Gated Deployment tab → Category: "Gating"
+    - DevOps tab → Category: "DevOps"
+    - FIM tab → Category: "FIM"
+    - Anti-malware tab → Category: "Anti-malware"
 - Second Step of Policy Wizard: Rules
   - This is the second step of the Policy Wizard 
   - It should have the exact same look and feel as the figma file `/assets/design/mockups/create-a-new-policy-new-rule-rules.png`
@@ -246,9 +316,6 @@ Rules are components of a policy that define specific conditions. They can be ex
 - Eight Step: Review and Finish
   - This is the third and last step of the policy wizard
   - This should just have one button for now: "Finish". This saves the policy and will show the policy on the policy table page.
-
-
-
 
 ### Rule Management
 - Add rules to policies
@@ -324,7 +391,6 @@ Rules are components of a policy that define specific conditions. They can be ex
           v. Anti-malware       
   5. All policy tables will have a option to edit an existing policy.
   6. All policy tables will have a option to delete a policy.
-
 
 ## Principal guidelines:
 
@@ -477,3 +543,50 @@ A default policy (per category/domain): One policy (per category), assigned to '
   b. Scalability: The platform must support scaling to accommodate increasing numbers of policies, rules, and users without compromising performance. 
   c. Security: The platform must ensure secure access and management of policies, protecting sensitive data and preventing unauthorized access. 
   d. Auditability: The platform must maintain detailed logs of all policy and rule operations, including creation, modification, and assignment, to support auditing and compliance. 
+
+## Policy Requirements
+
+### General Policy Requirements
+- Each policy must have a unique name
+- Each policy must have a description
+- Each policy must be assigned to one of the following categories:
+  - Posture
+  - Drift Detection
+  - Gated Deployment
+  - DevOps
+  - FIM
+  - Anti-malware
+- Each policy must have a scope (currently defaulted to "Default", with future support for: Global, Environment, Resource Group, Resource)
+- Each policy must have a priority level (Low, Medium, High, Critical)
+- Each policy must have a status (Enabled/Disabled)
+- Each policy must have a type (Default, Built-in, Custom)
+
+### Policy Categories and Their Specific Requirements
+
+#### Posture Policies
+// ... existing code ...
+
+#### Drift Detection Policies
+// ... existing code ...
+
+#### Gated Deployment Policies
+// ... existing code ...
+
+#### DevOps Policies
+// ... existing code ...
+
+#### FIM (File Integrity Monitoring) Policies
+// ... existing code ...
+
+#### Anti-malware Policies
+// ... existing code ...
+
+### Policy Scope Requirements
+- All policies must have a scope assigned
+- Currently, all policies default to "Default" scope
+- Future scope options will include:
+  - Global: Applies to all resources across all environments
+  - Environment: Applies to specific environments (e.g., Production, Staging, Development)
+  - Resource Group: Applies to specific resource groups
+  - Resource: Applies to individual resources
+- Scope selection will be implemented in a future update
